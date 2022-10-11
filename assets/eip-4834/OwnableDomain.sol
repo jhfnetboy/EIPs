@@ -4,11 +4,13 @@ pragma solidity ^0.8.9;
 // NOTE: This is very untested. Do not use!
 
 import "./IDomain.sol";
+import "./IDomainAccessControl.sol";
+import "./IDomainEnumerable.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract OwnableDomain is IDomain, ERC165Storage, Ownable, ERC165Checker {
+contract OwnableDomain is IDomain, IDomainAccessControl, ERC165Storage, Ownable, ERC165Checker {
     //// States
     mapping(string => address) public subdomains;
     mapping(string => bool) public subdomainsPresent;
@@ -20,6 +22,7 @@ contract OwnableDomain is IDomain, ERC165Storage, Ownable, ERC165Checker {
 
     constructor() {
         _registerInterface(type(IDomain).interfaceId);
+        _registerInterface(type(IDomainAccessControl).interfaceId);
     }
 
 
@@ -32,10 +35,6 @@ contract OwnableDomain is IDomain, ERC165Storage, Ownable, ERC165Checker {
     function getDomain(string memory name) public view returns (address) {
         require(this.hasDomain(name));
         return subdomains[name];
-    }
-
-    function listDomains() external view returns (string[] memory) {
-        return subdomainList;
     }
 
     function createDomain(string memory name, IDomain subdomain) public {
@@ -97,7 +96,7 @@ contract OwnableDomain is IDomain, ERC165Storage, Ownable, ERC165Checker {
         bool isTheOwner = this.owner() == updater;
 
         // Auth Check
-        bool isMovable = this.supportsInterface(this.getDomain(name), type(IDomain).interfaceId) && IDomain(this.getDomain(name)).canMoveSubdomain(updater, name, this, subdomain);
+        bool isMovable = this.supportsInterface(this.getDomain(name), type(IDomainAccessControl).interfaceId) && IDomainAccessControl(this.getDomain(name)).canMoveSubdomain(updater, name, this, subdomain);
 
         // Return
         return (isTheOwner || isMovable);
@@ -113,7 +112,7 @@ contract OwnableDomain is IDomain, ERC165Storage, Ownable, ERC165Checker {
         bool isTheOwner = this.owner() == updater;
 
         // Auth Check
-        bool isDeletable = this.supportsInterface(this.getDomain(name), type(IDomain).interfaceId) && IDomain(this.getDomain(name)).canDeleteDomain(updater, name, this);
+        bool isDeletable = this.supportsInterface(this.getDomain(name), type(IDomainAccessControl).interfaceId) && IDomainAccessControl(this.getDomain(name)).canDeleteDomain(updater, name, this);
 
         // Return
         return isTheOwner || isDeletable;
